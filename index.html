@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Audio Recording</title>
+	<meta charset="utf-8">
+	<!--
+	<script type="text/javascript" src="js/main.js"></script>
+	-->
+	<link rel="stylesheet" type="text/css" href="css/app.css"/>
+	
+</head>
+<body>
+	<div id="wrapper">
+		<header>
+			<h1>file To Blob</h1>
+		</header>
+		<main>
+			<div id="main-content">
+				<div id="col-1">
+					<h2>Seleccione el fichero</h2>
+					<div id="viewer">
+						<div>
+							<label>
+								Fichero:
+								<input type="file" name="fileInPut[]" id="inputFile"/>
+							</label>							
+						</div>
+						<div>
+							<label>
+								Audio Cargado:
+								<audio id="lastAudio" controls="" src=""></audio>	
+								<input type="button" value="+" id="btnAddAudio"/>
+							</label>	
+						</div>
+					</div>
+					<div id="infoFile">
+						<h3>Informacion del fichero:</h3>
+						<div class="data"></div>
+						<div class="dateView"></div>
+					</div>
+					<div id="dataElement"></div>
+				</div>
+				<div id="col-2">
+					<h2>Lista de archivos cargados</h2>
+					<ul id="audioList">
+						
+					</ul>
+				</div>
+			</div>
+		</main>
+		<footer>
+			<h3>Emilio Añover García</h3>
+		</footer>
+	</div>
+
+	<script type="text/javascript">
+		var fr = null;
+ 		var inputFile = null;
+		var dataElement  = null;
+		var infoFileElement  = null;
+		var btnAddAudio = null;
+		var btnsRemoveAudio = null;
+		var audioList = null;
+		var lastAudioElement = null;		
+		var lastAudioSRC = null;
+		
+		window.onload = init();
+
+		function init(){
+			//Elementos.
+			inputFile = document.getElementById('inputFile');
+			dataElement = document.getElementById('dataElement');
+			infoFileElement = document.getElementsByClassName('data')[0];
+			audioList = document.getElementById('audioList');
+			lastAudioElement = document.getElementById('lastAudio');
+			btnAddAudio = document.getElementById('btnAddAudio');
+			btnsRemoveAudio = document.getElementsByClassName('delItem');
+
+			if(window.File && window.FileReader && window.FileList && window.Blob){
+				inputFile.addEventListener('change', handleFileSelect);
+				btnAddAudio.addEventListener('click',handleAddAudio);
+			}else{
+				dataElement.innerHTML = "<li>No hay soporte para la API File.</li>"
+			}
+		}
+
+		function handleFileSelect(evt){
+			var files = evt.target.files; //FileList objest.
+			printFileInfo(files[0],infoFileElement);
+			fileToDataURI(files[0]).then(function(solution){
+				lastAudioSRC = lastAudioElement.src = solution;
+			}).catch(function(err){
+				dataElement.innerHTML = err;
+			});
+		}
+
+		function handleAddAudio(evt){
+			if(lastAudioSRC){
+				var li = document.createElement('LI');
+				li.appendChild(generateItemAudioList(' - ', generateAudioDOM(lastAudioElement.src)));
+				audioList.appendChild(li);
+				
+				lastAudio.src = lastAudioSRC = null;
+			}
+		}
+
+		function printFileInfo(file,element){
+			if(file instanceof File && element instanceof HTMLElement ){
+				element.innerHTML = '<ul>'
+				element.innerHTML += '<li><strong>'+ file.name +'</strong>';
+				element.innerHTML += '('+ (file.type || 'n/a');
+				element.innerHTML += ' - ' + file.size + ' byte), last modified: ';
+				element.innerHTML += file.lastModifiedDate? file.lastModifiedDate.toLocaleDateString():'n/a';  
+				element.innerHTML += '</li>';
+				element.innerHTML += '</ul>';
+				return true;
+			}else{
+				return false;
+			}
+		}
+
+		function fileToDataURI(file){
+			return new Promise(function(resolve,reject){
+				if(file instanceof File){
+					fr = new FileReader();
+					
+					fr.onloadend = function(e) {
+						console.log("OnLoadEnd");
+						resolve(e.target.result);	
+					};	
+
+					if(file.type === 'audio/ogg'){
+						fr.readAsDataURL(file);	
+					}else{
+						lastAudioSRC = null;
+						reject('El fichero no es un audio.');
+					}
+				}else{
+					reject('Argumento no es un fichero.');
+				}
+			});
+		}
+
+		function fileToArrayBuffer(file){
+			return new Promise(function(resolve,reject){
+				if(file instanceof File){
+					fr = new FileReader();
+
+					fr.onloadend =function(e){
+						console.log("OnLoadEnd");
+						resolve(e.target.result);
+					};
+					
+				}else{
+					reject();
+				}
+			});
+		}
+
+		function generateAudioDOM(dataUri){
+			var audioElement = null;
+			dataUri = typeof(dataUri) === 'string'? dataUri: '';
+
+			audioElement = document.createElement('audio');
+			audioElement.src = dataUri;
+			audioElement.preload = true;
+			audioElement.controls = true;
+
+			return audioElement;
+		};
+		
+		function generateItemAudioList(titulo, audioElement){
+			if(audioElement.tagName){
+				if(audioElement.tagName.toLowerCase() === 'audio'){
+					let li, header, footer; 
+					li = document.createElement('LI');
+					header = document.createElement('P');
+					footer = document.createElement('INPUT');
+					
+					header.innerHTML = titulo;
+					footer.setAttribute("type", "button");
+					footer.value = '-';
+					footer.addEventListener('click',function(){
+						this.parentNode.parentNode.removeChild(this.parentNode);
+					}); 
+
+					li.appendChild(header);
+					li.appendChild(audioElement);
+					li.appendChild(footer);
+					return li;
+				}
+			}
+		}
+
+		function isDomElements(domElements){
+			if(Array.isArray(domElements)){
+				for(let indice = 0; indice < domElements.length; indice++){
+					if(!(domElements[indice] instanceof HTMLElement)){
+						return false;
+					}
+				}
+			}else{
+				return false;
+			}
+			return true;
+		}
+		function isDomElement(domElement){
+			return domElement instanceof HTMLElement;
+		}
+	</script>
+</body>
+</html>
